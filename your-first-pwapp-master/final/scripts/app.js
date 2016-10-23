@@ -1,11 +1,11 @@
 // Copyright 2016 Google Inc.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //      http://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -84,11 +84,7 @@
   // doesn't already exist, it's cloned from the template.
   app.updateForecastCard = function(data) {
     var dataLastUpdated = new Date(data.created);
-    var sunrise = data.channel.astronomy.sunrise;
-    var sunset = data.channel.astronomy.sunset;
-    var current = data.channel.item.condition;
-    var humidity = data.channel.atmosphere.humidity;
-    var wind = data.channel.wind;
+    var myData = data.data;
 
     var card = app.visibleCards[data.key];
     if (!card) {
@@ -114,34 +110,47 @@
     }
     cardLastUpdatedElem.textContent = data.created;
 
-    card.querySelector('.description').textContent = current.text;
-    card.querySelector('.date').textContent = current.date;
-    card.querySelector('.current .icon').classList.add(app.getIconClass(current.code));
-    card.querySelector('.current .temperature .value').textContent =
-      Math.round(current.temp);
-    card.querySelector('.current .sunrise').textContent = sunrise;
-    card.querySelector('.current .sunset').textContent = sunset;
-    card.querySelector('.current .humidity').textContent =
-      Math.round(humidity) + '%';
-    card.querySelector('.current .wind .value').textContent =
-      Math.round(wind.speed);
-    card.querySelector('.current .wind .direction').textContent = wind.direction;
-    var nextDays = card.querySelectorAll('.future .oneday');
-    var today = new Date();
-    today = today.getDay();
-    for (var i = 0; i < 7; i++) {
-      var nextDay = nextDays[i];
-      var daily = data.channel.item.forecast[i];
-      if (daily && nextDay) {
-        nextDay.querySelector('.date').textContent =
-          app.daysOfWeek[(i + today) % 7];
-        nextDay.querySelector('.icon').classList.add(app.getIconClass(daily.code));
-        nextDay.querySelector('.temp-high .value').textContent =
-          Math.round(daily.high);
-        nextDay.querySelector('.temp-low .value').textContent =
-          Math.round(daily.low);
-      }
+    card.querySelector('.description').textContent = 'Disponible';
+    card.querySelector('.date').textContent = data.created;
+
+    var flights = myData;
+
+    //$("#tableFlights tbody > tr").remove();
+
+    card.querySelector('.table-striped .table .tbody').textContent="";
+
+    var txt = "";
+
+    for(var i = 0; i < flights.length; i++){
+      var actualFlight = flights[i];
+      var id = actualFlight.id;
+      var horario = new Date(actualFlight.horario);
+      var horarioString = horario.getDate() + "/" + (horario.getMonth()+1) + "/" + horario.getFullYear();
+      var estado = actualFlight.estado;
+      var parenttbl = document.getElementsByTagName("tr");
+      var tr = document.createElement('tr');
+
+      var td = document.createElement('td');
+      td.innerHTML = (i+1);
+      tr.appendChild(td);
+
+      var td2 = document.createElement('td');
+      td2.innerHTML = id;
+      tr.appendChild(td2);
+
+      var td3 = document.createElement('td');
+      td3.innerHTML = horarioString;
+      tr.appendChild(td3);
+
+      var td4 = document.createElement('td');
+      td4.innerHTML = estado;
+      tr.appendChild(td4);
+
+      card.querySelector('.table-striped .table .tbody').appendChild(tr);
+      //$("#tableFlights tbody").append('<tr><td>' + (i+1) + '</td><td>' + id + '</td><td>' + horarioString + '</td><td>' + estado + '</td></tr>');
     }
+
+
     if (app.isLoading) {
       app.spinner.setAttribute('hidden', true);
       app.container.removeAttribute('hidden');
@@ -165,38 +174,41 @@
    * freshest data.
    */
   app.getForecast = function(key, label) {
-    var statement = 'select * from weather.forecast where woeid=' + key;
-    var url = 'https://query.yahooapis.com/v1/public/yql?format=json&q=' +
-        statement;
-    // TODO add cache logic here
+    var url = 'https://taller6web.herokuapp.com/';
     if ('caches' in window) {
       /*
        * Check if the service worker has already cached this city's weather
        * data. If the service worker has the data, then display the cached
        * data while the app fetches the latest data.
        */
+       // CAMBIOS - se obtiene los datos de los vuelos
       caches.match(url).then(function(response) {
         if (response) {
           response.json().then(function updateFromCache(json) {
-            var results = json.query.results;
-            results.key = key;
-            results.label = label;
-            results.created = json.query.created;
+            var results = {
+              key: key,
+              label: label,
+              created: new Date(),
+              data: json
+            }
             app.updateForecastCard(results);
           });
         }
       });
     }
+
     // Fetch the latest data.
     var request = new XMLHttpRequest();
     request.onreadystatechange = function() {
       if (request.readyState === XMLHttpRequest.DONE) {
         if (request.status === 200) {
           var response = JSON.parse(request.response);
-          var results = response.query.results;
-          results.key = key;
-          results.label = label;
-          results.created = response.query.created;
+          var results = {
+            key: key,
+            label: label,
+            created: new Date(),
+            data: response
+          }
           app.updateForecastCard(results);
         }
       } else {
@@ -216,7 +228,6 @@
     });
   };
 
-  // TODO add saveSelectedCities function here
   // Save list of cities to localStorage.
   app.saveSelectedCities = function() {
     var selectedCities = JSON.stringify(app.selectedCities);
@@ -296,39 +307,111 @@
     key: '2459115',
     label: 'New York, NY',
     created: '2016-07-22T01:00:00Z',
-    channel: {
-      astronomy: {
-        sunrise: "5:43 am",
-        sunset: "8:21 pm"
+    data: [
+      {
+          "horario": 1477161335327,
+          "estado": "En camino",
+          "id": "687"
       },
-      item: {
-        condition: {
-          text: "Windy",
-          date: "Thu, 21 Jul 2016 09:00 PM EDT",
-          temp: 56,
-          code: 24
-        },
-        forecast: [
-          {code: 44, high: 86, low: 70},
-          {code: 44, high: 94, low: 73},
-          {code: 4, high: 95, low: 78},
-          {code: 24, high: 75, low: 89},
-          {code: 24, high: 89, low: 77},
-          {code: 44, high: 92, low: 79},
-          {code: 44, high: 89, low: 77}
-        ]
+      {
+          "horario": 1477161192327,
+          "estado": "Despegando",
+          "id": "143"
       },
-      atmosphere: {
-        humidity: 56
+      {
+          "horario": 1477160431327,
+          "estado": "En camino",
+          "id": "452"
       },
-      wind: {
-        speed: 25,
-        direction: 195
+      {
+          "horario": 1477160750327,
+          "estado": "Programado",
+          "id": "195"
+      },
+      {
+          "horario": 1477159035327,
+          "estado": "Programado",
+          "id": "575"
+      },
+      {
+          "horario": 1477159370327,
+          "estado": "Despegando",
+          "id": "393"
+      },
+      {
+          "horario": 1477159247327,
+          "estado": "Despegando",
+          "id": "348"
+      },
+      {
+          "horario": 1477159473327,
+          "estado": "A tiempo",
+          "id": "266"
+      },
+      {
+          "horario": 1477156591327,
+          "estado": "Despegando",
+          "id": "593"
+      },
+      {
+          "horario": 1477158671327,
+          "estado": "A tiempo",
+          "id": "296"
+      },
+      {
+          "horario": 1477153475327,
+          "estado": "A tiempo",
+          "id": "786"
+      },
+      {
+          "horario": 1477156748327,
+          "estado": "En camino",
+          "id": "417"
+      },
+      {
+          "horario": 1477159679327,
+          "estado": "Despegando",
+          "id": "138"
+      },
+      {
+          "horario": 1477158930327,
+          "estado": "Programado",
+          "id": "185"
+      },
+      {
+          "horario": 1477155301327,
+          "estado": "A tiempo",
+          "id": "431"
+      },
+      {
+          "horario": 1477158710327,
+          "estado": "Programado",
+          "id": "175"
+      },
+      {
+          "horario": 1477160695327,
+          "estado": "Programado",
+          "id": "40"
+      },
+      {
+          "horario": 1477152835327,
+          "estado": "Programado",
+          "id": "500"
+      },
+      {
+          "horario": 1477154981327,
+          "estado": "Despegando",
+          "id": "353"
+      },
+      {
+          "horario": 1477153127327,
+          "estado": "En camino",
+          "id": "432"
       }
-    }
+    ]
   };
   // TODO uncomment line below to test app with fake data
-  // app.updateForecastCard(initialWeatherForecast);
+  app.updateForecastCard(initialWeatherForecast);
 
   /************************************************************************
    *
