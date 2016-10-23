@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
+var url = "http://" + document.location.host + document.location.pathname;
 
 (function() {
   'use strict';
@@ -446,8 +446,9 @@
 
   // TODO add service worker code here
   if ('serviceWorker' in navigator) {
+    console.log(url);
     navigator.serviceWorker
-             .register('./service-worker.js')
+             .register('/service-worker.js')
              .then(function() { console.log('Service Worker Registered'); });
   }
 })();

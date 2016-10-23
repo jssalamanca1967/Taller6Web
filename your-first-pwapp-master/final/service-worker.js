@@ -15,14 +15,14 @@
 var dataCacheName = 'weatherData-v1';
 var cacheName = 'weatherPWA-final-1';
 var filesToCache = [
-  './',
-  './index.html',
-  './scripts/app.js',
-  './inline.css',
-  './images/arriving.png',
-  './images/flying.png',
-  './images/scheduled.png',
-  './images/departing.png'
+  '/',
+  '/index.html',
+  '/scripts/app.js',
+  '/inline.css',
+  '/images/arriving.png',
+  '/images/flying.png',
+  '/images/scheduled.png',
+  '/images/departing.png'
 ];
 
 self.addEventListener('install', function(e) {
